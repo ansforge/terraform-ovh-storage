@@ -1,6 +1,7 @@
+[almalinux@infra-amont-tfansible01 terraform-ovh-foundation]$ cat .gitignore
+.pem/
+*.pem
 .terraform/
 *.tfstate
 *.tfstate.*
-*.backup
-*.tfvars
 .terraform.lock.hcl
