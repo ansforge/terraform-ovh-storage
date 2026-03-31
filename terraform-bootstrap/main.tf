@@ -5,9 +5,15 @@ terraform {
   }
 }
 
-provider "vault" { skip_child_token = true }
+provider "vault" {
+  skip_child_token = true
+  # L'adresse Vault doit être définie via la variable d'env VAULT_ADDR sur ton runner
+}
 
-data "vault_generic_secret" "ovh_auth" { path = "iacrunner-prod/ovh_key" }
+# Utilisation de generic_secret comme sur ta prod
+data "vault_generic_secret" "ovh_auth" {
+  path = "iacrunner-amont/ovh_key"
+}
 
 provider "ovh" {
   endpoint           = "ovh-eu"
@@ -16,10 +22,10 @@ provider "ovh" {
   consumer_key       = data.vault_generic_secret.ovh_auth.data["OVH_CONSUMER_KEY"]
 }
 
-# SEULE RESSOURCE QUE LE BOOTSTRAP DOIT GARDER
+# Ressource unique pour le bucket de backend
 resource "ovh_cloud_project_storage" "tfstate" {
   service_name = var.service_name
-  region_name  = "RBX"
+  region_name  = "SBG"
   name         = var.bucket_prod_paris
 
   lifecycle {

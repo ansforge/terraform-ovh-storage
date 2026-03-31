@@ -8,10 +8,10 @@ output "s3_secret_key" {
 }
 
 output "openstack_username" {
-  value = ovh_cloud_project_user.s3_user.username
+  value = ovh_cloud_project_user.os_user.username
 }
 
 output "openstack_password" {
-  value     = ovh_cloud_project_user.s3_user.password
+  value     = ovh_cloud_project_user.os_user.password
   sensitive = true
 }

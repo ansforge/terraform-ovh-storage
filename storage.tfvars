@@ -1,2 +1,3 @@
-service_name      = "2b264defd5244f52b8edbd6c9239a325"
-bucket_prod_paris = "infra-prod-sto-object-tf01"
+service_name      = "a5a3658023e146e78a22afd04601b813"
+bucket_prod_paris = "infra-amont-sto-object-tf01"
+region_name       = "SBG"
