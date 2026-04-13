@@ -7,6 +7,8 @@ terraform {
 }
 
 # --- 1. UTILISATEURS OVH ---
+
+# Utilisateur pour le stockage S3
 resource "ovh_cloud_project_user" "s3_user" {
   service_name = var.service_name
   description  = "svc-terraform-aws"
@@ -18,11 +20,10 @@ resource "ovh_cloud_project_user_s3_credential" "s3_creds" {
   user_id      = ovh_cloud_project_user.s3_user.id
 }
 
+# Utilisateur pour l'automatisation OpenStack (Network/Compute)
 resource "ovh_cloud_project_user" "os_user" {
   service_name = var.service_name
   description  = "svc-terraform-openstack"
-
-  # ✔️ rôles OK
   role_names = [
     "compute_operator",
     "network_operator",
@@ -30,7 +31,9 @@ resource "ovh_cloud_project_user" "os_user" {
   ]
 }
 
-# --- 2. PROVIDER OPENSTACK (CORRIGÉ AVEC ALIAS) ---
+# --- 2. PROVIDER OPENSTACK TEMPORAIRE ---
+# Ce provider utilise le mot de passe de l'user créé juste au-dessus 
+# pour pouvoir générer l'Application Credential.
 provider "openstack" {
   alias     = "new_user"
   auth_url  = "https://auth.cloud.ovh.net/v3/"
@@ -39,11 +42,12 @@ provider "openstack" {
   tenant_id = var.service_name
 }
 
-# --- 3. APPLICATION CREDENTIAL (CORRIGÉ) ---
+# --- 3. APPLICATION CREDENTIAL ---
+# On génère un ID/Secret pour ne plus dépendre d'un mot de passe en clair.
 resource "openstack_identity_application_credential_v3" "os_app_cred" {
   provider    = openstack.new_user
   name        = "tf-app-credential"
-  description = "Credential pour Terraform (Auto-généré)"
+  description = "Credential pour Terraform Outils (Auto-généré)"
 }
 
 # --- 4. BUCKET S3 ---
@@ -79,9 +83,9 @@ resource "ovh_cloud_project_user_s3_policy" "s3_policy" {
   })
 }
 
-# --- 6. VAULT : AWS KEYS ---
+# --- 6. VAULT : STOCKAGE DES CLÉS AWS (S3) ---
 resource "vault_generic_secret" "aws_key" {
-  path = "iacrunner-amont/aws_key"
+  path = "iacrunner-outils/aws_key"
 
   data_json = jsonencode({
     AWS_ACCESS_KEY_ID     = ovh_cloud_project_user_s3_credential.s3_creds.access_key_id
@@ -89,13 +93,13 @@ resource "vault_generic_secret" "aws_key" {
   })
 }
 
-# --- 7. VAULT : OPENSTACK KEYS ---
+# --- 7. VAULT : STOCKAGE DES CLÉS OPENSTACK ---
 resource "vault_generic_secret" "openstack_key" {
-  path = "iacrunner-amont/openstack_key"
+  path = "iacrunner-outils/openstack_key"
 
   data_json = jsonencode({
-    OS_AUTH_URL                      = "https://auth.cloud.ovh.net/v3/"
-    OS_REGION_NAME                   = var.region_name
+    OS_AUTH_URL                     = "https://auth.cloud.ovh.net/v3/"
+    OS_REGION_NAME                  = var.region_name
     OS_APPLICATION_CREDENTIAL_ID     = openstack_identity_application_credential_v3.os_app_cred.id
     OS_APPLICATION_CREDENTIAL_SECRET = openstack_identity_application_credential_v3.os_app_cred.secret
   })
